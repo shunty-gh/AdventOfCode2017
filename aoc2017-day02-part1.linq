@@ -23,21 +23,8 @@ public int Solve(IEnumerable<string> input)
 	var result = 0;
 	foreach (var line in input)
 	{
-		int min = int.MaxValue, max = 0;
-		var nums = line.Split(new[] {'\t', ' ' });
-		foreach (var num in nums)
-		{
-			var inum = int.Parse(num);
-			if (inum < min)
-			{
-				min = inum;
-			} 
-			if (inum > max)
-			{
-				max = inum;
-			}
-		}
-		result += (max - min);
+		var nums = line.Split(new[] {'\t', ' ' }).Select(n => int.Parse(n)).OrderByDescending(n => n);
+		result += (nums.First() - nums.Last());
 	}
     return result;
 }
