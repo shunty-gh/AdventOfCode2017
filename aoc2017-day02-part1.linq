@@ -3,7 +3,7 @@
 void Main()
 {
     // Advent of code 2017
-    // Template. CLONE this before saving.
+    // Day 2, part 1
     int day = 2;
     int part = 1;
 
@@ -52,7 +52,7 @@ public bool RunTests()
     };
     var testresult = Solve(testinput);
     if (testresult != 18) result = false;
-    System.Diagnostics.Debug.Assert(18 == testresult, $"Expected 18 for but got {testresult}.");
+    System.Diagnostics.Debug.Assert(18 == testresult, $"Expected 18 for test but got {testresult}.");
     
     return result;
 }
