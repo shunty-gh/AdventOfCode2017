@@ -17,18 +17,18 @@ void Main()
 
 public int Solve(IList<int> input)
 {
-    var result = 0;
+    var round = 0;
     var inlen = input.Count;
-    var snapshots = new SortedSet<string>();
+    var snapshots = new Dictionary<string, int>();
     while (true)
     {
         var snapshot = string.Join("_", input);
         //Console.WriteLine($"Round {result}; Snapshot: {snapshot}");
-        if (snapshots.Contains(snapshot))
+        if (snapshots.ContainsKey(snapshot))
         {
-            break;   
+            return round - snapshots[snapshot];
         }
-        snapshots.Add(snapshot);
+        snapshots.Add(snapshot, round);
         // Reallocate
         var largest = input.Max();
         var indexoflargest = input.IndexOf(largest);
@@ -40,9 +40,8 @@ public int Solve(IList<int> input)
             input[nextindex] += 1;
             largest--;
         }
-        result++;
+        round++;
     }
-    return result;
 }
 
 public bool RunTests()
@@ -51,7 +50,7 @@ public bool RunTests()
     var testinput = new List<int> {
         0,2,7,0
     };
-    var expected = 5;
+    var expected = 4;
     var testresult = Solve(testinput);
     if (testresult != expected) result = false;
     System.Diagnostics.Debug.Assert(expected == testresult, $"Expected {expected} but got {testresult}.");
