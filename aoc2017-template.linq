@@ -10,11 +10,12 @@ void Main()
     if (!RunTests())
         return;
 
-    var input = ReadTextForDay(day, part);
+    var input = ReadLinesForDay(day, part);
     var result = Solve(input);
+    Console.WriteLine($"Result: {result}");
 }
 
-public int Solve(string input)
+public int Solve(IEnumerable<string> input)
 {
     // Work it out
     return 0;
@@ -29,18 +30,13 @@ public class TestInput
 public bool RunTests()
 {
     var result = true;
-    var testinput = new List<TestInput> {
-        new TestInput { Source = "", Solution = 0 },
-        new TestInput {  },
+    var testinput = new List<string> {
+        "", ""
     };
-    var tindex = 0;
-    foreach (var ti in testinput)
-    {
-        tindex++;
-        var testresult = Solve(ti.Source);
-        if (testresult != ti.Solution) result = false;
-        System.Diagnostics.Debug.Assert(ti.Solution == testresult, $"Expected {ti.Solution} for test {tindex} but got {testresult}.");
-    }
+    var expected = 0;
+    var testresult = Solve(testinput);
+    if (testresult != expected) result = false;
+    System.Diagnostics.Debug.Assert(expected == testresult, $"Expected {expected} but got {testresult}.");
     return result;
 }
 
