@@ -37,24 +37,23 @@ public int Solve(IEnumerable<string> input)
     foreach (var kvp in towers)
     {
         var tower = kvp.Value;
-        var above = tower.SubTowerNames;
-        if (!string.IsNullOrWhiteSpace(above))
+        var tnames = tower.SubTowerNames;
+        if (!string.IsNullOrWhiteSpace(tnames))
         {
-            var split = above.Trim().Split(',');
+            var split = tnames.Trim().Split(',');
             foreach (var tname in split)
             {
                 var subtower = towers[tname.Trim()];
                 tower.AddSubTower(subtower);
-                subtower.Below = tower;
             }
         }
     }
 
-    var basetower = towers.First(t => t.Value.Below == null).Value;
+    var basetower = towers.First(t => t.Value.Parent == null).Value;
     //basetower.Dump("Base");
     // Iterate through the towers looking for the sub-tower that is 
     // not balanced and recurse through until we get to a point where
-    // all sub-towers are balanced
+    // all sub-towers of the current tower are balanced.
     var current = basetower;
     while(true)
     {
@@ -63,21 +62,22 @@ public int Solve(IEnumerable<string> input)
             break;
         current = unbal;
     }
-    // At this point the current tower has a sub tower with a bad weight
-    // as each sub-tower will be balanced on its own but one sub-tower total 
-    // weight will be different to the others
     //current.Dump();
+    // At this point the current tower has one sub tower with a bad weight
+    // as each of the current tower's sub-towers will be balanced on its own 
+    // but one sub-tower total weight will be different to the others.
+    // ie curent tower is unbalanced but its sub-towers are individually balanced
     var towerweights = current.SubTowers.GroupBy(t => t.TotalWeight);
     //towerweights.Dump();
-    // One grouped item in the towerweights grouping will have one entry - the 
+    // One grouped item in the towerweights grouping will have only one entry - the 
     // bad tower/weight - and the other grouped item will have > 1 entry - the 
     // good towers/weights
-    var bad = towerweights.Where(g => g.Count() == 1).Select(g => g.First()).First(); // The bad tower
+    var badtower = towerweights.Where(g => g.Count() == 1).Select(g => g.First()).First(); // The bad tower
     var goodtotal = towerweights.Where(g => g.Count() > 1).Select(g => g.Key).First(); // The correct weight
-    //bad.Dump();
+    //badtower.Dump();
     //goodtotal.Dump();
-    var diff = bad.TotalWeight - goodtotal;
-    var corrected = bad.Weight - diff;
+    var diff = badtower.TotalWeight - goodtotal;
+    var corrected = badtower.TowerWeight - diff;
 
     return corrected;
 }
@@ -86,15 +86,17 @@ public class Tower
 {
     private int _subtowerweight = -1;
     private List<Tower> _subtowers = new List<Tower>();
+    
     public string TowerName { get; set; }
-    public int Weight { get; set; }
-    public int TotalWeight { get { return Weight + SubTowerWeight; } }
+    public int TowerWeight { get; set; }
+    public int TotalWeight { get { return TowerWeight + SubTowerWeight; } }
     public string SubTowerNames { get; set; }
     public IEnumerable<Tower> SubTowers { get { return _subtowers; } }
-    public Tower Below { get; set; }
+    public Tower Parent { get; set; }
     
     public void AddSubTower(Tower tower)
     {
+        tower.Parent = this;
         _subtowers.Add(tower);
     }
 
@@ -102,6 +104,10 @@ public class Tower
     {
         get
         {
+            if (_subtowers.Count == 0)
+                return 0;
+                
+            // Calculate it the first time and store it
             if (_subtowerweight < 0)
             {
                 var result = 0;
@@ -141,7 +147,7 @@ public Tower ProcessLine(string line)
     var tower = new Tower
     {
         TowerName = match.Groups["tower"].Value,
-        Weight = int.Parse(match.Groups["weight"].Value),
+        TowerWeight = int.Parse(match.Groups["weight"].Value),
         SubTowerNames = match.Groups["towers"]?.Value ?? "",
     };
     return tower;
