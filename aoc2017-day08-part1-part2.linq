@@ -4,14 +4,15 @@ void Main()
 {
     // Advent of code 2017
     // Day 8, parts 1 and 2
-    int day = 8;
-    int part = 1; 
     
     if (!RunTests())
         return;
 
-    var input = ReadLinesForDay(day, part);
+    var fname = Path.Combine(Path.GetDirectoryName(Util.CurrentQueryPath), $"aoc2017-day08-part1.txt");
+    var input = File.ReadAllLines(fname, Encoding.UTF8);
+    
     var result = Solve(input);
+
     Console.WriteLine($"Result, part1: {result.Item1}");
     Console.WriteLine($"Result, part2: {result.Item2}");
 }
@@ -19,40 +20,10 @@ void Main()
 public static string pattern = @"^(?<register>\w*)\s(?<decinc>(dec|inc))\s(?<amount>-{0,1}\d*)\sif\s(?<condreg>\w*)\s(?<condop>.*)\s(?<condval>-{0,1}\d*)$";
 public static Regex re = new Regex(pattern);
 
-public enum RegisterConditionOp
-{
-    Unknown,
-    Equals, 
-    NotEquals,
-    LessThan,
-    GreaterThan,
-    LessThanOrEqual,
-    GreaterThanOrEqual
-}
-
-public static RegisterConditionOp OpFromString(string source)
-{
-    var s = source.Trim().ToLower();
-    if (s == "==")
-        return RegisterConditionOp.Equals;
-    else if (s == "!=")
-        return RegisterConditionOp.NotEquals;
-    else if (s == ">")
-        return RegisterConditionOp.GreaterThan;
-    else if (s == "<")
-        return RegisterConditionOp.LessThan;
-    else if (s == ">=")
-        return RegisterConditionOp.GreaterThanOrEqual;
-    else if (s == "<=")
-        return RegisterConditionOp.LessThanOrEqual;
-    else
-        return RegisterConditionOp.Unknown;
-}
-
 public struct RegisterCondition
 {
     public string Register;
-    public RegisterConditionOp Operator;
+    public string Operator;
     public int Amount;
 }
 
@@ -74,7 +45,7 @@ public Tuple<int, int> Solve(IEnumerable<string> input)
         var rc = new RegisterCondition
         {
             Register = match.Groups["condreg"].Value,
-            Operator = OpFromString(match.Groups["condop"].Value),
+            Operator = match.Groups["condop"].Value.Trim(),
             Amount = int.Parse(match.Groups["condval"].Value),
         };
         var ri = new RegisterInstruction
@@ -92,26 +63,27 @@ public Tuple<int, int> Solve(IEnumerable<string> input)
         if (!registers.ContainsKey(rc.Register))
             registers.Add(rc.Register, 0);
         
-        // Check if the condition is true
+        // Check if the condition is true. A fully fledged expression parser/evaulator 
+        // is a bit much just for this script. Simple is good.
         var applyit = false;
         switch (rc.Operator)
         {
-            case RegisterConditionOp.Equals:
+            case "==":
                 applyit = (registers[rc.Register] == rc.Amount);
                 break;
-            case RegisterConditionOp.NotEquals:
+            case "!=":
                 applyit = (registers[rc.Register] != rc.Amount);
                 break;
-            case RegisterConditionOp.GreaterThan:
+            case ">":
                 applyit = (registers[rc.Register] > rc.Amount);
                 break;
-            case RegisterConditionOp.LessThan:
+            case "<":
                 applyit = (registers[rc.Register] < rc.Amount);
                 break;
-            case RegisterConditionOp.GreaterThanOrEqual:
+            case ">=":
                 applyit = (registers[rc.Register] >= rc.Amount);
                 break;
-            case RegisterConditionOp.LessThanOrEqual:
+            case "<=":
                 applyit = (registers[rc.Register] <= rc.Amount);
                 break;
         }
@@ -146,16 +118,4 @@ public bool RunTests()
     System.Diagnostics.Debug.Assert(expectedA == testresult.Item1, $"Expected {expectedA} but got {testresult.Item1} for part 1.");
     System.Diagnostics.Debug.Assert(expectedB == testresult.Item2, $"Expected {expectedB} but got {testresult.Item2} for part 2.");
     return result;
-}
-
-public IEnumerable<string> ReadLinesForDay(int dayNumber, int part)
-{
-    var fname = GetInputFilename(dayNumber, part);
-    var result = File.ReadAllLines(fname, Encoding.UTF8);
-    return result;
-}
-
-public string GetInputFilename(int dayNumber, int part)
-{
-    return Path.Combine(Path.GetDirectoryName(Util.CurrentQueryPath), $"aoc2017-day{dayNumber:D2}-part{part:D1}.txt");
 }
