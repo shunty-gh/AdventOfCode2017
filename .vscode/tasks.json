@@ -32,6 +32,24 @@
             "problemMatcher": [
                 "$msCompile"
             ]
+        },
+        {
+            "label": "Dotnet build",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${fileDirname}/"
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ]
         }
     ]
 }
