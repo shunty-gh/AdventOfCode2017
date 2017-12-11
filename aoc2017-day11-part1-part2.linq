@@ -18,72 +18,72 @@ void Main()
 	Console.WriteLine($"Furthest distance: {result.Item2}");
 }
 
-// Could (should?) use proper graph traversal techniques for this but in this
-// case simple works perfectly well enough.
+// Using cube co-ordinates for a hexagonal grid
+// https://www.redblobgames.com/grids/hexagons/
 
-public int DistanceFromOrigin(Point current)
+public struct HexPoint
 {
-	int result;
-	if (Math.Abs(current.X) > Math.Abs(current.Y))
+	public int X;
+	public int Y;
+	public int Z;
+	
+	public HexPoint(int x, int y, int z)
 	{
-		result = Math.Abs(current.X);
+		X = x;
+		Y = y;
+		Z = z;
 	}
-	else
+	
+	public int DistanceFromOrigin
 	{
-		result = Math.Min(Math.Abs(current.X), Math.Abs(current.Y)) + (Math.Abs(Math.Abs(current.X) - Math.Abs(current.Y)) / 2);
+		get
+		{
+			return (Math.Abs(X) + Math.Abs(Y) + Math.Abs(Z)) / 2;
+		}
 	}
-	return result;
 }
 
 public Tuple<int, int> Solve(string input)
 {
-	/*
-	Using a hexagonal grid with x,y co-ords of the form
-	   
-	   -4,2      -2,2        0,2        2,2      4,2
-            -3,1       -1,1       1,1        3,1
-	   -4,0      -2,0        0,0        2,0      4,0    
-	       -3,-1      -1,-1      1,-1       3,-1
-	   -4,-2     -2,-2      0,-2       2,-2     4,-2
-	*/
-	
 	var furthest = 0;
     var directions = input.Split(',').ToList();
-	var current = new Point(0, 0);
+	var current = new HexPoint(0, 0, 0);
 	foreach (var direction in directions)
 	{
 		switch (direction)
 		{
 			case "n":
-				current.Y += 2;
+				current.Y += 1;
+				current.Z -= 1;
 				break;
 			case "ne":
 				current.X += 1;
-				current.Y += 1;
+				current.Z-= 1;
 				break;
 			case "se":
 				current.X += 1;
 				current.Y -= 1;
 				break;
 			case "s":
-				current.Y -= 2;
+				current.Y -= 1;
+				current.Z += 1;
 				break;
 			case "sw":
 				current.X -= 1;
-				current.Y -= 1;
+				current.Z += 1;
 				break;
 			case "nw":
 				current.X -= 1;
 				current.Y += 1;
 				break;
 		}
-		var distance = DistanceFromOrigin(current);
+		var distance = current.DistanceFromOrigin;
 		if (distance > furthest)
 		{
 			furthest = distance;
 		}
 	}
-	return new Tuple<int, int>(DistanceFromOrigin(current), furthest);
+	return new Tuple<int, int>(current.DistanceFromOrigin, furthest);
 }
 
 public bool RunTests()
