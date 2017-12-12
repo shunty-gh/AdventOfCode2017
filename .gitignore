@@ -4,3 +4,5 @@
 a.out
 
 .vscode/tags
+target/
+bin/
