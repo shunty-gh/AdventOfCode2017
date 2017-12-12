@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": ".NET Core Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Dotnet build",
+            "program": "${fileDirname}/bin/Debug/netcoreapp2.0/...name-goes-here...dll",
+            "args": [],
+            "cwd": "${fileDirname}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",
