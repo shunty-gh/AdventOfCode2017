@@ -67,26 +67,15 @@ public Tuple<int, int> Solve(string input)
     return new Tuple<int, int>(setcount, groupcount);
 }
 
-public IEnumerable<Point> GetNeighbours(Point p, int[,] grid)
+public IEnumerable<Point> GetNeighbours(Point current, int[,] grid)
 {
-    var result = new List<Point>();
-    if (p.X > 0)
-    {
-        result.Add(new Point(p.X - 1, p.Y));
-    }
-    if (p.X < grid.GetUpperBound(0))
-    {
-        result.Add(new Point(p.X + 1, p.Y));
-    }
-    if (p.Y > 0)
-    {
-        result.Add(new Point(p.X, p.Y - 1));
-    }
-    if (p.Y < grid.GetUpperBound(1))
-    {
-        result.Add(new Point(p.X, p.Y + 1));
-    }
-    return result;
+    return new List<Point>(new [] {
+        new Point(current.X - 1, current.Y),
+        new Point(current.X + 1, current.Y),
+        new Point(current.X, current.Y - 1),
+        new Point(current.X, current.Y + 1),
+    })
+    .Where(p => p.X >= 0 && p.X <= grid.GetUpperBound(0) && p.Y >= 0 && p.Y <= grid.GetUpperBound(1));
 }
 
 public IList<int> HashToIntList(string hash)
@@ -137,6 +126,5 @@ public string GetHash(string input)
         blocks[blockindex] = list.Skip(blockindex * 16).Take(16).Aggregate(0, (h, b) => h ^= b);
     }
     // to hex string
-    var result = blocks.Aggregate("", (s, b) => s += b.ToString("x2"));
-    return result;
+    return blocks.Aggregate("", (s, b) => s += b.ToString("x2"));
 }
