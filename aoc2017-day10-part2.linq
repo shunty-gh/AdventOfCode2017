@@ -28,39 +28,26 @@ public string Solve(string input)
 	{
 		foreach (var num in nums)
 		{
-			// so many better ways of doing this. but it works, for now
-			var sublist = new List<int>(num);
-			// Select num elements and reverse them
-			for (var index = 0; index < num; index++)
-			{
-				sublist.Add(list[(current + index) % listlen]);
-			}
-			sublist.Reverse();
-			for (var index = 0; index < num; index++)
-			{
-				list[(current + index) % listlen] = sublist[index];
-			}
-			current = (current + num + skipsize) % listlen;
-			skipsize++;
-		}
-	}	
-	
-	var blocks = new int[16];
-	var hash = 0;
-	for (var index = 0; index < 256; index++)
-	{
-		hash ^= list[index];
-		if ((index + 1) % 16 == 0)
-		{
-			blocks[((index + 1) / 16) - 1] = hash;
-			hash = 0;
-		}
-	}
-	// to hex string
-	var result = "";
-	for (var index = 0; index < 16; index++)
-	{
-		result += blocks[index].ToString("x2");
-	}
-	return result;
+            // Reverse section of num elements
+            for (var index = 0; index < (num / 2); index++)
+            {
+                int a = (current + index) % listlen;
+                int b = (current + num - index - 1) % listlen;
+                var tmp = list[a];
+                list[a] = list[b];
+                list[b] = tmp;                
+            }
+            current = (current + num + skipsize) % listlen;
+            skipsize++;
+        }
+    }
+
+    var blocks = new int[16];
+    for (var blockindex = 0; blockindex < 16; blockindex++)
+    {
+        blocks[blockindex] = list.Skip(blockindex * 16).Take(16).Aggregate(0, (h, b) => h ^= b);
+    }
+    // to hex string
+    var result = blocks.Aggregate("", (s, b) => s += b.ToString("x2"));
+    return result;
 }
