@@ -7,4 +7,4 @@ authors = ["Steven Hunt <sph@shunty.co.uk>"]
 
 [[bin]]
 name = "aoc"
-path ="aoc2017-day12.rs"
+path ="dayXX/aoc2017-dayXX.rs"
