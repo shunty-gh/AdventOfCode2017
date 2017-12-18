@@ -16,128 +16,75 @@ void Main()
     Console.WriteLine($"Result, part 2: {result}");
 }
 
-public struct Instruction
+public Int64 GetInstructionValue(IDictionary<string, Int64> registers, string keyOrValue)
 {
-    public string Action;
-    public char OpReg;
-    public Int64 OpValue;
-    public Int64 Amount;
-}
-
-public void CheckRegister(IDictionary<char, Int64> registers, char key)
-{
-    if ((key != '_') && !registers.ContainsKey(key))
-        registers[key] = 0;
-}
-
-public Instruction ParseInstruction(string[] src, IDictionary<char, Int64> registers)
-{
-    var tmp = src[1];
-    char regX = ((tmp.Length == 1) && Char.IsLetter(tmp[0])) ? tmp[0] : '_';
-    CheckRegister(registers, regX);
-    Int64 regXvalue = regX == '_' ? Int64.Parse(tmp) : registers[regX];
-    
-    tmp = (src.Count() > 2) ? src[2] : "0";
-    char regY = ((tmp.Length == 1) && Char.IsLetter(tmp[0])) ? tmp[0] : '_';
-    CheckRegister(registers, regY);
-    Int64 regYvalue = regY == '_' ? Int64.Parse(tmp) : registers[regY];
-
-    return new Instruction
+    Int64 result;
+    if (!Int64.TryParse(keyOrValue, out result))
     {
-        Action = src[0],
-        OpReg = regX,
-        OpValue = regXvalue,
-        Amount = regYvalue 
-    };
-}
-
-public static object locker = new Object();
-public int ProcessInstruction(int programId, int currentInstructionIndex, Instruction instruction, IDictionary<char, Int64> registers, Queue<Int64> sendQueue, Queue<Int64> rcvQueue)
-{
-    int result;
-    switch (instruction.Action)
-    {
-        case "snd":
-            lock (locker)
-            {
-                sendQueue.Enqueue(instruction.OpValue);
-                result = currentInstructionIndex + 1;
-            }
-            break;
-        case "set":
-            registers[instruction.OpReg] = instruction.Amount;
-            result = currentInstructionIndex + 1;
-            break;
-        case "add":
-            registers[instruction.OpReg] += instruction.Amount;
-            result = currentInstructionIndex + 1;
-            break;
-        case "mul":
-            registers[instruction.OpReg] *= instruction.Amount;
-            result = currentInstructionIndex + 1;
-            break;
-        case "mod":
-            registers[instruction.OpReg] %= instruction.Amount;
-            result = currentInstructionIndex + 1;
-            break;
-        case "rcv":
-            result = currentInstructionIndex;
-            if (rcvQueue.Count > 0)
-            {
-                lock (locker)
-                {
-                    registers[instruction.OpReg] = rcvQueue.Dequeue();
-                    result += 1;
-                }
-            }
-            break;
-        case "jgz":
-            result = currentInstructionIndex + (int)(instruction.OpValue > 0 ? instruction.Amount : 1);
-            break;
-        default:
-            throw new Exception($"Unknown instruction: {instruction.Action}");
+        if (!registers.ContainsKey(keyOrValue))
+        {
+            registers[keyOrValue] = 0;
+        }
+        result = registers[keyOrValue];
     }
     return result;
 }
 
-public Task StartProgram(int programId, IList<string[]> instructions, Dictionary<char, Int64> registers, List<Queue<Int64>> queues, IList<ProgramTaskState> states)
+public static object locker = new Object();
+public Task StartProgram(IList<string[]> instructions, Dictionary<string, Int64> registers, Queue<Int64> sendQueue, Queue<Int64> receiveQueue, ProgramTaskState state, Func<bool> deadlockCheck)
 {
     var result = Task.Factory.StartNew(() =>
     {
-        var sndq = programId == 0 ? queues[1] : queues[0];
-        var rcvq = programId == 0 ? queues[0] : queues[1];
-        var state = states[programId];
         var instructionIndex = 0;
-        while (true)
+        while (instructionIndex >= 0 && instructionIndex < instructions.Count && !deadlockCheck())
         {
-            var instruction = ParseInstruction(instructions[instructionIndex], registers);
-            var nextindex = ProcessInstruction(programId, instructionIndex, instruction, registers, sndq, rcvq);
-            state.WaitCount = (nextindex == instructionIndex) ? state.WaitCount + 1 : 0; 
-
-            if (instruction.Action == "snd")
+            var instruction = instructions[instructionIndex];
+            var regx = instruction[1];
+            int skip = 1;
+            switch (instruction[0])
             {
-                state.SendCount += 1;
-            }
-
-            if (instructionIndex < 0 || instructionIndex >= instructions.Count)
-            {
-                state.WaitCount = 0;
-                break; // Finished if we jump out of the instruction list
-            }
-
-            instructionIndex = nextindex;
-            
-            // Deadlock check
-            lock (locker)
-            {
-                if (states[0].WaitCount > 2 && states[1].WaitCount > 2)
-                {
-                    // Both programs are waiting, and have been for more than two rounds each
-                    // therefore, deadlock
-                    Console.WriteLine($"P{programId} deadlock! P0: {{ Wait = {states[0].WaitCount}, Sends = {states[0].SendCount} }} P1: {{ Wait = {states[1].WaitCount}, Sends = {states[1].SendCount} }}");
+                case "snd":
+                    lock (locker)
+                    {
+                        sendQueue.Enqueue(GetInstructionValue(registers, regx));
+                        state.SendCount += 1;
+                    }
                     break;
-                }
+                case "set":
+                    registers[regx] = GetInstructionValue(registers, instruction[2]);
+                    break;
+                case "add":
+                    registers[regx] += GetInstructionValue(registers, instruction[2]);
+                    break;
+                case "mul":
+                    registers[regx] *= GetInstructionValue(registers, instruction[2]);
+                    break;
+                case "mod":
+                    registers[regx] %= GetInstructionValue(registers, instruction[2]);
+                    break;
+                case "rcv":
+                    lock (locker)
+                    {
+                        if (receiveQueue.Count > 0)
+                        {
+                            registers[regx] = receiveQueue.Dequeue();
+                            state.WaitCount = 0;
+                        }
+                        else
+                        {
+                            state.WaitCount += 1;
+                            skip = 0;
+                        }
+                    }
+                    break;
+                case "jgz":
+                    skip = GetInstructionValue(registers, regx) > 0 ? (int)GetInstructionValue(registers, instruction[2]) : 1;
+                    break;
+                default:
+                    throw new Exception($"Unknown instruction: {instruction[0]}");
             }
+
+            instructionIndex += skip;
         }
     });
     return result;
@@ -151,24 +98,29 @@ public class ProgramTaskState
 
 public Int64 Solve(IEnumerable<string> input)
 {
-    var instructions = input.Select(s => s.Split(' ')).ToList();
+    var instructions = input.Select(s => s.Split(' ')).ToList().AsReadOnly();
 
-    var registers = new List<Dictionary<char, Int64>> {
-        new Dictionary<char, Int64> { { 'p', 0 } }, 
-        new Dictionary<char, Int64> { { 'p', 1 } },
-    };
-    var queues = new List<Queue<Int64>> {
-        new Queue<Int64>(),
-        new Queue<Int64>(),
-    };
-    var states = new List<ProgramTaskState> { 
-        new ProgramTaskState(), 
-        new ProgramTaskState() 
-    };
-    
-    var p0 = StartProgram(0, instructions, registers[0], queues, states);
-    var p1 = StartProgram(1, instructions, registers[1], queues, states);
+    var registers0 = new Dictionary<string, Int64> { { "p", 0 } };
+    var registers1 = new Dictionary<string, Int64> { { "p", 1 } };
+    var queue0 = new Queue<Int64>();
+    var queue1 = new Queue<Int64>();
+    var state0 = new ProgramTaskState();
+    var state1 = new ProgramTaskState();
 
-    Task.WaitAll(new [] { p0, p1 });
-    return states[1].SendCount;
+    Func<bool> deadlockCheck = () =>
+    {
+        lock (locker)
+        {
+            var result = (state0.WaitCount > 2 && state1.WaitCount > 2);
+            if (result)
+                Console.WriteLine($"Deadlock! P0: {{ Wait = {state0.WaitCount}, Sends = {state0.SendCount} }} P1: {{ Wait = {state1.WaitCount}, Sends = {state1.SendCount} }}");
+            return result;
+        };
+    };
+
+    Task.WaitAll(new [] { 
+        StartProgram(instructions, registers0, queue1, queue0, state0, deadlockCheck), 
+        StartProgram(instructions, registers1, queue0, queue1, state1, deadlockCheck),
+    });
+    return state1.SendCount;
 }
