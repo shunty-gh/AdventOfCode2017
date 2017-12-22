@@ -14,8 +14,27 @@ void Main()
     Console.WriteLine($"Part 2, after 18 iterations: {result}");
 }
 
+public int Solve(IEnumerable<string> input, int iterations)
+{
+    var rules = BuildRules(input);
+    var grid = ".#./..#/###".Split('/');
+    while (iterations-- > 0)
+    {
+        grid = Enhance(grid, rules);
+    }
+
+    return grid.Select(s => s.ToCharArray().Count(c => c == '#')).Sum();
+}
+
 public Dictionary<string, string[]> BuildRules(IEnumerable<string>input)
 {
+    Func<string[], string[]> flip = src => src.Reverse().ToArray();
+
+    Func<string[], string[]> rotate = src =>
+        Enumerable.Range(0, src.Length)
+            .Select(i => string.Join("", src.Reverse().Select(s => s[i])))
+            .ToArray();
+
     var result = new Dictionary<string, string[]>();
     foreach (var rule in input)
     {
@@ -26,95 +45,35 @@ public Dictionary<string, string[]> BuildRules(IEnumerable<string>input)
         for (var rots = 0; rots < 4; rots++)
         {
             result[string.Join("", pattern)] = ruleresult;
-            result[string.Join("", Flip(pattern, true))] = ruleresult;
-            result[string.Join("", Flip(pattern, false))] = ruleresult;
-            pattern = Rotate(pattern);
+            result[string.Join("", flip(pattern))] = ruleresult;
+            pattern = rotate(pattern);
         }
     }
     return result;
 }
 
-public string[] Rotate(string[] input)
+public string[] Enhance(string[] grid, Dictionary<string, string[]> rules)
 {
-    // Rotate a grid clockwise
-    // eg  a b c      g d a
-    //     d e f  =>  h e b
-    //     g h i      i f c
-    
-    return Enumerable.Range(0, input.Length)
-        .Select(i => 
-            string.Join("", input.Reverse().Select(s => s[i])))
-        .ToArray();
-}
+    // Partition grid into 2x2 or 3x3 blocks depending on grid size
+    // Expand 2x2 => 3x3 and 3x3 => 4x4
+    var gl = grid.Length;
+    var bw = gl % 2 == 0 ? 2 : 3;
+    var bc = gl / bw;
+    var result = new string[gl / bw * (bw + 1)];
 
-public string[] Flip(string[] input, bool horiz)
-{
-    // Flip a grid along the horizontal or vertical axis
-    return horiz 
-        ? input.Reverse().ToArray()
-        : input.Select(l => string.Join("", l.ToCharArray().Reverse().ToArray())).ToArray();
-}
-
-public int Solve(IEnumerable<string> input, int iterations)
-{
-    var rules = BuildRules(input);
-    var grid = ".#./..#/###".Split('/');
-    while (iterations > 0)
-    {      
-        var splits = SliceGrid(grid);
-        var enhanced = splits.Select(g => rules[string.Join("", g)]).ToList();
-        grid = Recombine(enhanced);
-
-        iterations--;
-    }
-    
-    return grid.Select(s => s.ToCharArray().Count(c => c == '#')).Sum();
-}
-
-public string[] Recombine(IList<string[]> grids)
-{
-    if (grids.Count == 1)
-        return grids[0];
-        
-    var gcount = grids.Count;
-    var blockwidth = grids[0].Length;
-    var blocksperrow = (int)Math.Sqrt(gcount);
-    var result = new string[blocksperrow * blockwidth];
-    for (var y = 0; y < blocksperrow; y++)
-    {        
-        for (var x = 0; x < blockwidth; x++)
-        {
-            var s = "";
-            for (var index = 0; index < blocksperrow; index++)
-            {
-                s += grids[y * blocksperrow + index][x];
-            }
-            result[(y * blockwidth) + x] = s;
-        }
-    }
-    return result;
-}
-
-public IList<string[]> SliceGrid(string[] grid)
-{
-    var gwidth = grid.Length;
-    var blockwidth = gwidth % 2 == 0 ? 2 : 3;
-    var blocksperrow = gwidth / blockwidth;
-    if (gwidth == blockwidth)
-        return new List<string[]> { grid };
-    
-    var result = new List<string[]>();
-    for (var y = 0; y < blocksperrow; y++)
+    for (var y = 0; y < bc; y++)
     {
-        for (var x = 0; x < blocksperrow; x++)
+        for (var x = 0; x < bc; x++)
         {
-            var block = new string[blockwidth];
-            for (var index = 0; index < blockwidth; index++)
+            var key = string.Join("", Enumerable.Range(0, bw)
+                .Select(i => grid[(y * bw) + i].Substring(x * bw, bw)));
+                
+            var transform = rules[key];
+
+            for (var index = 0; index < bw + 1; index++)
             {
-                var row = grid[(y * blockwidth) + index].Substring(x * blockwidth, blockwidth);
-                block[index] = row;
+                result[(y * (bw + 1)) + index] += transform[index];
             }
-            result.Add(block);
         }
     }
     return result;
