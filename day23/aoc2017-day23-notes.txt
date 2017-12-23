@@ -1,0 +1,92 @@
+set b 81
+set c b
+jnz a 2
+jnz 1 5
+mul b 100
+sub b -100000
+set c b
+sub c -17000
+set f 1
+set d 2
+set e 2
+set g d
+mul g e
+sub g b
+jnz g 2
+set f 0
+sub e -1
+set g e
+sub g b
+jnz g -8
+sub d -1
+set g d
+sub g b
+jnz g -13
+jnz f 2
+sub h -1
+set g b
+sub g c
+jnz g 2
+jnz 1 3
+sub b -17
+jnz 1 -23
+
+######## Rewrite ############
+# for part 2:
+a = 1 => b = 108100, c = 125100   # Instructions 1..8
+
+:Loop3
+f = 1, d = 2
+	:Loop2
+	e = 2
+		:Loop1
+		g = (d * e) - b
+		g == 0 
+			f = 0
+		e++
+		g = e - b
+		if g != 0 goto Loop1
+
+	d++
+	g = d - b
+	if g != 0 goto Loop2
+
+f == 0
+    h++
+g = b - c
+if g != 0
+    b += 17
+	goto Loop3
+# else
+goto end
+
+## Using line numbers rather than 0 based indexes
+
+while (b != c)                  # 32 jnz -> # 9     (g != 0) <=> (b <> c) <=> (b - c != 0)
+    f = 1, d = 2,               # 9..10
+	while g != 0                # 24 jnz -> # 11
+	    e = 2                   # 11
+		while g != 0            # 20 -> # 12
+    	    g = (d * e) - b     # 12..14 set g d, mul g e, sub g be
+			if g == 0           # 15
+			    f = 0           # 16
+			e += 1              # 17
+			g = e - b           # 18..19
+		d += 1                  # 21
+		g = d - b               # 22..23
+	if f == 0                   # 25
+	    h += 1                  # 26		
+	g = b - c                   # 27..28 set g b, sub g c
+	if g != 0	                # 29 jnz
+	    b += 17                 # 31 
+	else                        #
+	    break;                  # 30 jnz to end
+		
+		
+b counts up to c in increments of 17
+every time there is a pair of numbers (d and e) that multiply to give b then f is set to 0
+  ie if b is a prime number then f won't get set 		
+therefore once f is zero we should break out of the loops
+we can also short circuit the loops by ensuring e only goes up to (b / d) as once it is beyond this we won't find any pair (d, e) such that d * e = b
+
+therefore h is the number of non-primes between b and c
